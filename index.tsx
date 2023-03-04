@@ -10,6 +10,7 @@ export async function getStaticProps() {
   return { props: { accounts } };
 }
 
+//This function gets the current value of all coinbase accounts for the profile (in this case, it's a sandbox generic user)
 async function fetchAccounts() {
   try {
     const response = await axios.get("http://127.0.0.1:3000/api/accounts");
@@ -20,8 +21,11 @@ async function fetchAccounts() {
 }
 
 export default function Home({ accounts }) {
+  //useStates for account data
   const [data, setData] = useState(accounts);
+  //useStates for page refresh loading to disable the refresh accounts button for a period of time.
   const [isLoading, setIsLoading] = useState(false);
+  //The next few states are here to allow the user to setup their own bespoke order on the platform. This section is incomplete.
   const [positionPrice, setPositionPrice] = useState(0);
   const [costPerTrade, setCostPerTrade] = useState(0);
   const [profitTarget, setProfitTarget] = useState(0);
@@ -32,8 +36,10 @@ export default function Home({ accounts }) {
   const [longLossPrice, setLongLossPrice] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [symbol, setSymbol] = useState(0);
+  //This is the message data coming from TradingView via my tvPlaceTrade API endpoint.
   const [message, setMessage] = useState("");
 
+  //I am not sure I'm going to ever use this, but I was thinking about how I'd use it to package all the state variables when it's time to transmit them to Coinbase.
   let pricingDataPkg = {
     longLimitSellPrice: longLimitSellPrice,
     shortLimitBuyPrice: shortLimitBuyPrice,
@@ -44,7 +50,7 @@ export default function Home({ accounts }) {
     symbol: symbol,
   };
 
-  //Get Messages from TradingView
+  //Gather the incoming Messages from TradingView via the tvPlaceTrade api endpoint
   useEffect(() => {
     const eventSource = new EventSource("api/tvPlaceTrade");
     eventSource.addEventListener("message", (event) => {
@@ -56,14 +62,16 @@ export default function Home({ accounts }) {
       eventSource.close();
     };
   }, [message]);
-
+  //validate 'message' was updated with the POST data that comes into the tvPlaceTrade api endpoint
   console.log("Also logging message here");
   console.log(message);
 
+  //I don't actually know what this is doing?
   useEffect(() => {
     handleRecalculation(positionPrice, costPerTrade, profitTarget, lossLimit);
   }, [positionPrice, costPerTrade, profitTarget, lossLimit]);
 
+  //These are all the handling of state change for various fields. When each field is edited, I need to recalculate all the values in pricingDataPkg.
   const handleLongPriceChange = (e) => {
     handleRecalculation(positionPrice, costPerTrade, profitTarget, lossLimit);
     setPositionPrice(parseFloat(e.target.value));
@@ -76,12 +84,12 @@ export default function Home({ accounts }) {
     handleRecalculation(positionPrice, costPerTrade, profitTarget, lossLimit);
     setCostPerTrade(parseFloat(e.target.value));
   };
-
   const handleLossLimitChange = (e) => {
     handleRecalculation(positionPrice, costPerTrade, profitTarget, lossLimit);
     setLossLimit(parseFloat(e.target.value));
   };
 
+  //Using this function to shorthand the code a little bit, allowing me to move the larger code body outside the Home component.
   function handleRecalculation(
     positionPrice,
     costPerTrade,
@@ -100,6 +108,7 @@ export default function Home({ accounts }) {
     setShortLossPrice(result.shortLoss);
   }
 
+  //The function that refreshes the account data if the user clicks the button to do it.
   async function handleRefreshAccounts() {
     setIsLoading(true);
     const response = await fetchAccounts();
